@@ -1,15 +1,9 @@
-"use client";
-
-import Logout from "@/lib/module/auth/components/Logout";
-import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/module/auth/utils/auth-utils";
-import { useRouter } from "next/navigation";
-
 
 export default async function Home() {
-  const router = useRouter();
-  await requireAuth()
-  return router.push("/dashboard")
+  await requireAuth(); // server-side auth check
+  redirect("/dashboard"); // server redirect
 }
 
 // export default function LandingPage() {
