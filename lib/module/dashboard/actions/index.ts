@@ -1,70 +1,50 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { fetchUserContribution, getGithubToken } from "../../github/lib/github";
 import { headers } from "next/headers";
 import { Octokit } from "octokit";
-import { preconnect } from "react-dom";
-import { date } from "better-auth";
+import { fetchUserContribution, getGithubToken } from "../../github/lib/github";
 
-/* -------------------- DASHBOARD STATS -------------------- */
+/* ---------------- DASHBOARD STATS ---------------- */
 
 export async function getDashboardStats() {
- try {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
 
-  if (!session?.user) {
-    throw new Error("Unauthorized");
+    if (!session?.user) throw new Error("Unauthorized");
+
+    const token = await getGithubToken();
+    const octokit = new Octokit({ auth: token });
+
+    const { data: user } = await octokit.rest.users.getAuthenticated();
+    const calendar = await fetchUserContribution(token, user.login);
+
+    const { data: prs } =
+      await octokit.rest.search.issuesAndPullRequests({
+        q: `author:${user.login} type:pr`,
+        per_page: 1,
+      });
+
+    return {
+      totalCommits: calendar?.totalContributions ?? 0,
+      totalRepos: 30,
+      totalPRs: prs.total_count,
+      totalReviews: 44,
+    };
+  } catch (error) {
+    console.error("Dashboard stats error:", error);
+    return {
+      totalCommits: 0,
+      totalRepos: 0,
+      totalPRs: 0,
+      totalReviews: 0,
+    };
   }
-
-  // GitHub token
-  const token = await getGithubToken();
-
-  const octokit = new Octokit({
-    auth: token,
-  });
-
-  // Get GitHub username
-  const { data: user } = await octokit.rest.users.getAuthenticated();
-
-  // Fetch GitHub contributions
-  const calendar = await fetchUserContribution(token, user.login);
-
-  const totalCommits = calendar.totalContributions || 0;
-
-  // Example placeholder (replace with DB value)
-  const totalRepos = 30;
-
-  const {data:prs} = await octokit.rest.search.issuesAndPullRequests({
-    q:`author:${user.login} type pr`,
-    per_page:1
-  })
-
-  const totalPRs = prs.total_count
-
-  // TODO : Count ai riviews by ai 
-
-  const totalReviews = 44
-
-  return {
-    totalCommits,
-    totalRepos,
-    totalPRs,
-    totalReviews
-  }
- } catch (error) {
-  console.log("Error fetching dashboard stats : ", error);
-  return {
-    totalCommits:0,
-    totalRepos:0,
-    totalPRs:0,
-    totalReviews:0
-  }
- }
-
 }
+
+/* ---------------- MONTHLY ACTIVITY ---------------- */
 
 export async function getMonthlyActivity() {
   try {
@@ -72,9 +52,7 @@ export async function getMonthlyActivity() {
       headers: await headers(),
     });
 
-    if (!session?.user) {
-      throw new Error("Unauthorized");
-    }
+    if (!session?.user) throw new Error("Unauthorized");
 
     const token = await getGithubToken();
     const octokit = new Octokit({ auth: token });
@@ -90,23 +68,20 @@ export async function getMonthlyActivity() {
       "Sep", "Oct", "Nov", "Dec",
     ];
 
-    const monthlyData: Record<
-      string,
-      { commits: number; prs: number; reviews: number }
-    > = {};
+    const monthlyData: Record<string, { commits: number; prs: number; reviews: number }> = {};
 
     const now = new Date();
-
-    // Initialize last 6 months
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = monthNames[d.getMonth()];
-      monthlyData[key] = { commits: 0, prs: 0, reviews: 0 };
+      monthlyData[monthNames[d.getMonth()]] = {
+        commits: 0,
+        prs: 0,
+        reviews: 0,
+      };
     }
 
-    // ✅ Commits
-    calendar.weeks.forEach((week: any) => {
-      week.contributionDays.forEach((day: any) => {
+    calendar.weeks.forEach((week) => {
+      week.contributionDays.forEach((day) => {
         const d = new Date(day.date);
         const key = monthNames[d.getMonth()];
         if (monthlyData[key]) {
@@ -115,33 +90,16 @@ export async function getMonthlyActivity() {
       });
     });
 
-    // ✅ Sample reviews (temporary)
-    const reviews = Array.from({ length: 45 }, () => {
-      const daysAgo = Math.floor(Math.random() * 180);
-      const d = new Date();
-      d.setDate(d.getDate() - daysAgo);
-      return { createdAt: d };
-    });
-
-    reviews.forEach((r) => {
-      const key = monthNames[r.createdAt.getMonth()];
-      if (monthlyData[key]) {
-        monthlyData[key].reviews += 1;
-      }
-    });
-
-    // ✅ PRs (last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    const since = sixMonthsAgo.toISOString().split("T")[0];
+    const since = new Date();
+    since.setMonth(since.getMonth() - 6);
 
     const { data: prs } =
       await octokit.rest.search.issuesAndPullRequests({
-        q: `author:${user.login} type:pr created:>=${since}`,
+        q: `author:${user.login} type:pr created:>=${since.toISOString()}`,
         per_page: 100,
       });
 
-    prs.items.forEach((pr: any) => {
+    prs.items.forEach((pr) => {
       const d = new Date(pr.created_at);
       const key = monthNames[d.getMonth()];
       if (monthlyData[key]) {
@@ -159,4 +117,50 @@ export async function getMonthlyActivity() {
   }
 }
 
+/* */ 
 
+export interface ContributionStat {
+  date: string;
+  count: number;
+  level: number;
+}
+
+export interface ContributionStatsResult {
+  totalContributions: number;
+  contributions: ContributionStat[];
+}
+
+export async function getContributionStats(): Promise<ContributionStatsResult | null> {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) throw new Error("Unauthorized");
+
+    const token = await getGithubToken();
+    const octokit = new Octokit({ auth: token });
+
+    const { data: user } = await octokit.rest.users.getAuthenticated();
+    const calendar = await fetchUserContribution(token, user.login);
+
+    if (!calendar) return null;
+
+    const contributions: ContributionStat[] = calendar.weeks.flatMap(
+      (week) =>
+        week.contributionDays.map((day) => ({
+          date: day.date,
+          count: day.contributionCount,
+          level: Math.min(4, Math.floor(day.contributionCount / 3)),
+        }))
+    );
+
+    return {
+      totalContributions: calendar.totalContributions,
+      contributions,
+    };
+  } catch (error) {
+    console.error("Error fetching contribution stats:", error);
+    return null;
+  }
+}

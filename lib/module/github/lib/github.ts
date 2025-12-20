@@ -16,12 +16,12 @@ export interface ContributionCalendar {
   }[];
 }
 
-interface ContributionResponse {
+export interface ContributionResponse {
   user: {
-    contributionCollection: {
+    contributionsCollection: {
       contributionCalendar: ContributionCalendar;
-    };
-  };
+    } | null;
+  } | null;
 }
 
 /* -------------------- GITHUB TOKEN -------------------- */
@@ -46,24 +46,24 @@ export const getGithubToken = async (): Promise<string> => {
   });
 
   if (!account?.accessToken) {
-    throw new Error("No GitHub access token found");
+    throw new Error("GitHub token not found");
   }
 
   return account.accessToken;
 };
 
-/* -------------------- CONTRIBUTIONS -------------------- */
+/* -------------------- FETCH CONTRIBUTIONS -------------------- */
 
 export const fetchUserContribution = async (
   token: string,
   username: string
-): Promise<ContributionCalendar> => {
+): Promise<ContributionCalendar | null> => {
   const octokit = new Octokit({ auth: token });
 
   const query = `
     query ($username: String!) {
       user(login: $username) {
-        contributionCollection {
+        contributionsCollection {
           contributionCalendar {
             totalContributions
             weeks {
@@ -79,9 +79,16 @@ export const fetchUserContribution = async (
     }
   `;
 
-  const response = await octokit.graphql<ContributionResponse>(query, {
-    username,
-  });
+  try {
+    const response = await octokit.graphql<ContributionResponse>(query, {
+      username,
+    });
 
-  return response.user.contributionCollection.contributionCalendar;
+    return (
+      response.user?.contributionsCollection?.contributionCalendar ?? null
+    );
+  } catch (error) {
+    console.error("GitHub GraphQL error:", error);
+    return null;
+  }
 };
