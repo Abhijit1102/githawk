@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { RepositoryListSkeleton } from "@/lib/module/repository/components/repository-skeleton";
+import { useConnectRepository } from "@/lib/module/repository/hooks/use-connect-repository";
 import { useRepositories } from "@/lib/module/repository/hooks/use-repositories";
 import { ExternalLink, Search, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -32,6 +33,9 @@ const RepositoryPage = () => {
     hasNextPage,
     isFetchingNextPage
   } = useRepositories();
+
+  const {mutate:connectRepo} = useConnectRepository();
+
 
   const [localConnectingId, setLocalConnectedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,8 +86,18 @@ const RepositoryPage = () => {
     repo.full_name.toLowerCase().includes(searchQuery.toLowerCase())
   ))
 
-  const handleConnect = (repo:any) => {
-
+  const handleConnect = (repo:Repositories) => {
+    setLocalConnectedId(repo.id)
+    connectRepo(
+      {
+        owner:repo.full_name.split("/")[0],
+        repo: repo.name,
+        githubId:repo.id
+      },
+      {
+        onSettled:()=>setLocalConnectedId(null)    
+      }
+    );
   };
 
   return (

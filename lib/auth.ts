@@ -3,14 +3,18 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "./db";
 
 export const auth = betterAuth({
-    database: prismaAdapter(prisma, {
-        provider:  "postgresql",
-    }),
-    socialProviders:{
-        github:{
-            clientId: process.env.GITHUB_AUTH_CLIENT_ID!,
-            clientSecret: process.env.GITHUB_AUTH_CLIENT_SECRET!,
-            score: ["repo"]
-        }
-    }
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
+  socialProviders: {
+    github: {
+      clientId: process.env.GITHUB_AUTH_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_AUTH_CLIENT_SECRET!,
+      scope: [
+        "read:user",
+        "repo",
+        "admin:repo_hook"
+      ],
+    },
+  },
 });
