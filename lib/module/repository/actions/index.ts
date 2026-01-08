@@ -16,7 +16,7 @@ export const fetchRepositories  = async(page: number=1, perPage:number=10) => {
 
     const githubRepos = await getRepositories(page, perPage);
 
-    const dbRepos = await prisma.respository.findMany({
+    const dbRepos = await prisma.repository.findMany({
         where: {
             userId: session.user.id
         }
@@ -44,7 +44,7 @@ export const connectRepository = async(owner: string, repo:string, githubId: num
     const webhook = await createWebhook(owner, repo);
 
     if(webhook){
-        await prisma.respository.create({
+        await prisma.repository.create({
             data: {
                 githubId: BigInt(githubId),
                 name: repo,
