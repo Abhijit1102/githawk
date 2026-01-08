@@ -89,7 +89,7 @@ export async function getConnectedRepositories(){
             throw new Error("Unathorized!")
         };
 
-        const repositories = await prisma.respository.findMany(
+        const repositories = await prisma.repository.findMany(
             {
                 where:{userId: session.user.id},
                 select:{
@@ -121,7 +121,7 @@ export async function disconnectRepository(respositoryId:string) {
             throw new Error("Unauthorized")
         }
 
-        const repository = await prisma.respository.findUnique({
+        const repository = await prisma.repository.findUnique({
             where:{
                 id:respositoryId,
                 userId: session.user.id
@@ -134,7 +134,7 @@ export async function disconnectRepository(respositoryId:string) {
 
         await deleteWebhook(repository.owner, repository.name);
 
-        await prisma.respository.delete({
+        await prisma.repository.delete({
             where:{
                 id:repository.id,
                 userId: session.user.id
@@ -162,7 +162,7 @@ export async function disconnectAllRepositories(){
             throw new Error("Unauthorized")
         }
 
-        const repository = await prisma.respository.findMany({
+        const repository = await prisma.repository.findMany({
             where:{
                 userId: session.user.id
             }
@@ -172,7 +172,7 @@ export async function disconnectAllRepositories(){
             await deleteWebhook(repo.owner, repo.name)
         }));
 
-        const result = await prisma.respository.deleteMany({
+        const result = await prisma.repository.deleteMany({
             where: {
                 userId: session.user.id
             }
