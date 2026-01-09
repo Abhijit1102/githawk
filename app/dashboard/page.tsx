@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GitBranch, GitCommit, GitPullRequest, MessageSquare } from "lucide-react";
+import { GitBranch, GitCommit, GitPullRequest, MessageSquare,  } from "lucide-react";
 import {Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer} from "recharts";
 import {useQuery} from "@tanstack/react-query";
 import { getDashboardStats, getMonthlyActivity } from "@/lib/module/dashboard/actions";
@@ -65,7 +65,7 @@ const MainPage = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">AI Reviews</CardTitle>
-          <GitPullRequest className="text-xs text-muted-foreground"/>
+          <MessageSquare className="text-xs text-muted-foreground"/>
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{isLoading ? "..." : stats?.totalPRs || 0 }</div>

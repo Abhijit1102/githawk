@@ -3,11 +3,18 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Octokit } from "octokit";
+import { graphql } from "@octokit/graphql";
 import { fetchUserContribution, getGithubToken } from "../../github/lib/github";
 
-/* ---------------- DASHBOARD STATS ---------------- */
+export interface DashboardStats {
+  totalCommits: number;
+  totalRepos: number;
+  totalPRs: number;
+  totalReviews: number;
+}
 
-export async function getDashboardStats() {
+/* ---------------- DASHBOARD STATS ---------------- */
+export async function getDashboardStats(): Promise<DashboardStats> {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -16,22 +23,41 @@ export async function getDashboardStats() {
     if (!session?.user) throw new Error("Unauthorized");
 
     const token = await getGithubToken();
-    const octokit = new Octokit({ auth: token });
 
-    const { data: user } = await octokit.rest.users.getAuthenticated();
-    const calendar = await fetchUserContribution(token, user.login);
+    const graphqlWithAuth = graphql.defaults({
+      headers: {
+        authorization: `token ${token}`,
+      },
+    });
 
-    const { data: prs } =
-      await octokit.rest.search.issuesAndPullRequests({
-        q: `author:${user.login} type:pr`,
-        per_page: 1,
-      });
+    const data = await graphqlWithAuth(`
+      query {
+        viewer {
+          repositories(
+            affiliations: OWNER
+            isFork: false
+          ) {
+            totalCount
+          }
+          pullRequests {
+            totalCount
+          }
+          contributionsCollection {
+            totalCommitContributions
+            totalPullRequestReviewContributions
+          }
+        }
+      }
+    `);
 
     return {
-      totalCommits: calendar?.totalContributions ?? 0,
-      totalRepos: 30,
-      totalPRs: prs.total_count,
-      totalReviews: 44,
+      totalCommits:
+        data.viewer.contributionsCollection.totalCommitContributions,
+      totalRepos: data.viewer.repositories.totalCount,
+      totalPRs: data.viewer.pullRequests.totalCount,
+      totalReviews:
+        data.viewer.contributionsCollection
+          .totalPullRequestReviewContributions,
     };
   } catch (error) {
     console.error("Dashboard stats error:", error);
