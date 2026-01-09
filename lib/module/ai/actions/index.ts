@@ -3,6 +3,9 @@
 import prisma from "@/lib/db";
 import { getPullRequestDiff } from "../../github/lib/github";
 import { inngest } from "@/inngest/client";
+import  { canCreateReview, incrementReviewCount } from "@/lib/module/payment/lib/subscription";
+
+
 
 export async function reviewPullRequest(
     owner:string,
@@ -32,6 +35,12 @@ export async function reviewPullRequest(
             throw new Error(`Repository ${owner}/${repo} not found in database. Please reconnect the repository!.`);
         }
 
+        const canReview = await canCreateReview(repository.userId, repository.id)
+
+        if(!canReview) {
+            throw new Error("Review limit reached for this repository. Please upgrade to PRO for unlimited reviews.")
+        }
+
         const githubAccount = repository.user.accounts[0];
         
         if(!githubAccount?.accessToken) {
@@ -50,7 +59,9 @@ export async function reviewPullRequest(
                 prNumber,
                 userId:repository.user.id
             }
-        })
+        });
+
+        await incrementReviewCount(repository.user.id, repository.id);
 
         return {success: true, message: "Review Queued"}
         
@@ -78,6 +89,4 @@ export async function reviewPullRequest(
             console.error("Failed to save error to database:", (error as Error).message);
         }
     }
-   
-}
-
+};

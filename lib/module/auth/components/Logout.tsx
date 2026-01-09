@@ -16,7 +16,7 @@ const Logout = ({
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          router.push("/login");
+          router.push("/");
         },
       },
     });

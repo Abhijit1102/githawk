@@ -1,14 +1,14 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { headers as getHeaders } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const requireAuth = async () => {
-  const incomingHeaders = await headers();
+  const reqHeaders = getHeaders();
 
   const session = await auth.api.getSession({
-    headers: new Headers(incomingHeaders),
+    headers: await reqHeaders,
   });
 
   if (!session) {
@@ -19,15 +19,15 @@ export const requireAuth = async () => {
 };
 
 export const requireUnAuth = async () => {
-  const incomingHeaders = await headers();
+  const reqHeaders = getHeaders();
 
   const session = await auth.api.getSession({
-    headers: new Headers(incomingHeaders),
+    headers: await reqHeaders,
   });
 
   if (session) {
     redirect("/");
   }
 
-  return session;
+  return null;
 };
