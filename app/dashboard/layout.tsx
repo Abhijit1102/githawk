@@ -6,7 +6,12 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+import { requireAuth } from "@/lib/module/auth/utils/auth-utils";
+
+// ✅ Must be async because we await requireAuth()
+const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
+  const session = await requireAuth();
+
   return (
     <SidebarProvider>
       {/* Sidebar */}
@@ -22,9 +27,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <Separator orientation="vertical" className="mx-2 h-6" />
 
           {/* Title */}
-          <h1 className="text-xl font-semibold text-foreground">
-            Dashboard
-          </h1>
+          <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
         </header>
 
         {/* Main area */}
