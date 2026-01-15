@@ -1,7 +1,7 @@
 import { serve } from "inngest/next";
 import { inngest } from "../../../inngest/client";
 import { indexRepo } from "@/inngest/functions";
-import { generateReview } from "@/inngest/functions/review";
+import { generateReview } from "@/inngest/functions";
 
 export const runtime = "nodejs";
 
