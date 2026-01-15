@@ -92,10 +92,8 @@ npm run dev
 
 - MIT License © 2026 [Abhijit Rajkumar]
 ---
-```bash
 
 If you want, I can also make a **fancier version with badges, emojis, and a “quick start for GitHawk” section** like many GitHub hobby projects, which looks very appealing at a glance.  
 
 Do you want me to do that too?
 
-```
