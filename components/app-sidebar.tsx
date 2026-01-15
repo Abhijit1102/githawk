@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -33,7 +33,7 @@ import Logout from "@/lib/module/auth/components/Logout";
 export const AppSidebar = () => {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const { data: session } = authClient.useSession();
+  const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
