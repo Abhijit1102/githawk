@@ -2,9 +2,13 @@
 
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { Octokit } from "octokit";
 import { graphql } from "@octokit/graphql";
-import { fetchUserContribution, getGithubToken } from "../../github/lib/github";
+import { Octokit } from "octokit";
+import { getGithubToken, fetchUserContribution } from "../../github/lib/github";
+
+/* =======================
+   TYPES
+======================= */
 
 export interface DashboardStats {
   totalCommits: number;
@@ -13,7 +17,21 @@ export interface DashboardStats {
   totalReviews: number;
 }
 
-/* ---------------- DASHBOARD STATS ---------------- */
+interface DashboardStatsResponse {
+  viewer: {
+    repositories: { totalCount: number };
+    pullRequests: { totalCount: number };
+    contributionsCollection: {
+      totalCommitContributions: number;
+      totalPullRequestReviewContributions: number;
+    };
+  };
+}
+
+/* =======================
+   DASHBOARD STATS
+======================= */
+
 export async function getDashboardStats(): Promise<DashboardStats> {
   try {
     const session = await auth.api.getSession({
@@ -26,17 +44,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
     const graphqlWithAuth = graphql.defaults({
       headers: {
-        authorization: `token ${token}`,
+        authorization: `Bearer ${token}`,
       },
     });
 
-    const data = await graphqlWithAuth(`
+    const data = await graphqlWithAuth<DashboardStatsResponse>(`
       query {
         viewer {
-          repositories(
-            affiliations: OWNER
-            isFork: false
-          ) {
+          repositories(affiliations: OWNER, isFork: false) {
             totalCount
           }
           pullRequests {
@@ -70,9 +85,18 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   }
 }
 
-/* ---------------- MONTHLY ACTIVITY ---------------- */
+/* =======================
+   MONTHLY ACTIVITY
+======================= */
 
-export async function getMonthlyActivity() {
+interface MonthlyActivity {
+  name: string;
+  commits: number;
+  prs: number;
+  reviews: number;
+}
+
+export async function getMonthlyActivity(): Promise<MonthlyActivity[]> {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -89,32 +113,32 @@ export async function getMonthlyActivity() {
     if (!calendar) return [];
 
     const monthNames = [
-      "Jan", "Feb", "Mar", "Apr",
-      "May", "Jun", "Jul", "Aug",
-      "Sep", "Oct", "Nov", "Dec",
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ];
 
-    const monthlyData: Record<string, { commits: number; prs: number; reviews: number }> = {};
-
+    const monthlyData: Record<string, MonthlyActivity> = {};
     const now = new Date();
+
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       monthlyData[monthNames[d.getMonth()]] = {
+        name: monthNames[d.getMonth()],
         commits: 0,
         prs: 0,
         reviews: 0,
       };
     }
 
-    calendar.weeks.forEach((week) => {
+    calendar.weeks.forEach((week) =>
       week.contributionDays.forEach((day) => {
         const d = new Date(day.date);
         const key = monthNames[d.getMonth()];
         if (monthlyData[key]) {
           monthlyData[key].commits += day.contributionCount;
         }
-      });
-    });
+      })
+    );
 
     const since = new Date();
     since.setMonth(since.getMonth() - 6);
@@ -128,22 +152,31 @@ export async function getMonthlyActivity() {
     prs.items.forEach((pr) => {
       const d = new Date(pr.created_at);
       const key = monthNames[d.getMonth()];
-      if (monthlyData[key]) {
-        monthlyData[key].prs += 1;
-      }
+      if (monthlyData[key]) monthlyData[key].prs++;
     });
 
-    return Object.entries(monthlyData).map(([name, values]) => ({
-      name,
-      ...values,
-    }));
+    const { data: reviews } =
+      await octokit.rest.search.issuesAndPullRequests({
+        q: `reviewed-by:${user.login} type:pr created:>=${since.toISOString()}`,
+        per_page: 100,
+      });
+
+    reviews.items.forEach((review) => {
+      const d = new Date(review.created_at);
+      const key = monthNames[d.getMonth()];
+      if (monthlyData[key]) monthlyData[key].reviews++;
+    });
+
+    return Object.values(monthlyData);
   } catch (error) {
     console.error("Monthly activity error:", error);
     return [];
   }
 }
 
-/* */ 
+/* =======================
+   CONTRIBUTION STATS
+======================= */
 
 export interface ContributionStat {
   date: string;
@@ -172,21 +205,18 @@ export async function getContributionStats(): Promise<ContributionStatsResult | 
 
     if (!calendar) return null;
 
-    const contributions: ContributionStat[] = calendar.weeks.flatMap(
-      (week) =>
+    return {
+      totalContributions: calendar.totalContributions,
+      contributions: calendar.weeks.flatMap((week) =>
         week.contributionDays.map((day) => ({
           date: day.date,
           count: day.contributionCount,
           level: Math.min(4, Math.floor(day.contributionCount / 3)),
         }))
-    );
-
-    return {
-      totalContributions: calendar.totalContributions,
-      contributions,
+      ),
     };
   } catch (error) {
-    console.error("Error fetching contribution stats:", error);
+    console.error("Contribution stats error:", error);
     return null;
   }
 }

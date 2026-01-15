@@ -1,5 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
+import { useQuery } from "@tanstack/react-query";
+
 import {
   Card,
   CardContent,
@@ -9,29 +14,78 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Clock, CheckCircle, XCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getReviews } from "@/lib/module/review/actions";
-import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import {
+  ExternalLink,
+  Clock,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+
+import { getReviews } from "@/lib/module/review/actions";
+import { formatDistanceToNow } from "date-fns";
+import Loader from "@/components/Loader";
+import { toast } from "sonner";
+
 export default function ReviewsPage() {
-  const { data: reviews = [], isLoading } = useQuery({
+  const router = useRouter();
+
+  /**
+   * 🔐 AUTH SESSION (ALWAYS CALLED)
+   */
+  const { data: session, isPending } = useSession();
+
+  /**
+   * 📊 REVIEWS QUERY (SAFE — ENABLED ONLY IF AUTHENTICATED)
+   */
+  const {
+    data: reviews = [],
+    isLoading,
+  } = useQuery({
     queryKey: ["reviews"],
     queryFn: getReviews,
+    enabled: !!session?.user,
+    refetchOnWindowFocus: false,
   });
 
-  /* -------------------- LOADING -------------------- */
+  /**
+   * 🔁 REDIRECT IF NOT AUTHENTICATED
+   */
+  useEffect(() => {
+    if (!isPending && !session?.user) {
+      router.replace("/");
+      toast.message("You need to login!")
+    }
+  }, [isPending, session, router]);
+
+  /**
+   * ⏳ WAIT FOR AUTH CHECK
+   */
+  if (isPending) {
+    return (
+      <Loader />
+    );
+  }
+
+  /**
+   * 🚫 BLOCK UI UNTIL REDIRECT
+   */
+  if (!session?.user) {
+    return null;
+  }
+
+  /**
+   * ⏳ DATA LOADING
+   */
   if (isLoading) {
     return (
       <div className="space-y-6 p-6">
-        {/* Header */}
         <div className="space-y-2">
           <Skeleton className="h-8 w-52" />
           <Skeleton className="h-4 w-72" />
         </div>
 
-        {/* Cards */}
         {Array.from({ length: 3 }).map((_, i) => (
           <Card key={i}>
             <CardHeader>
@@ -55,10 +109,11 @@ export default function ReviewsPage() {
     );
   }
 
-  /* -------------------- PAGE -------------------- */
+  /**
+   * ✅ PAGE UI
+   */
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Review History</h1>
         <p className="text-muted-foreground">
@@ -66,13 +121,11 @@ export default function ReviewsPage() {
         </p>
       </div>
 
-      {/* Empty state */}
       {reviews.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="py-12 text-center text-muted-foreground">
-              No review yet. Connect a repository and open a PR to get AI
-              reviews.
+              No review yet. Connect a repository and open a PR to get AI reviews.
             </div>
           </CardContent>
         </Card>
