@@ -1,14 +1,19 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "./db";
-import { updateUserTier, updatePolarCustomerId} from "@/lib/module/payment/lib/subscription";
-import { polarClient } from "./module/payment/config/polar";
+
 import {
   polar,
   checkout,
   usage,
   webhooks,
 } from "@polar-sh/better-auth";
+
+import { polarClient } from "@/lib/module/payment/config/polar";
+import {
+  updateUserTier,
+  updatePolarCustomerId,
+} from "@/lib/module/payment/lib/subscription";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -22,15 +27,18 @@ export const auth = betterAuth({
       scope: ["read:user", "repo", "admin:repo_hook"],
     },
   },
-  
-  trustedOrigins:[
-    process.env.NEXT_PUBLIC_APP_BASE_URL
-  ].filter(Boolean) as string[],
+
+  // ✅ THIS FIXES INVALID_ORIGIN
+  trustedOrigins: [
+    "http://localhost:3000",
+    process.env.NEXT_PUBLIC_APP_BASE_URL!,
+  ].filter(Boolean),
 
   plugins: [
     polar({
       client: polarClient,
       createCustomerOnSignUp: true,
+
       returnUrl:
         process.env.NEXT_PUBLIC_APP_BASE_URL ??
         "http://localhost:3000/dashboard",
@@ -43,63 +51,63 @@ export const auth = betterAuth({
               slug: "githawk",
             },
           ],
-          successUrl: process.env.POLAR_SUCCESS_URL || "/dashboard/subscription?success=true",
+          successUrl:
+            process.env.POLAR_SUCCESS_URL ??
+            "/dashboard/subscription?success=true",
           authenticatedUsersOnly: true,
         }),
 
         usage(),
 
         webhooks({
-          secret: "polar_whs_GS8IIfxpWVaYGd8ICkiPQScvHBu41ytAXbL8O06jdhV",
+          secret: process.env.POLAR_WEBHOOK_SECRET!,
+
           onSubscriptionActive: async (payload) => {
-            const customerId = payload.data.customerId;
-
-            const user  = await prisma.user.findUnique({
-              where: {
-                polarCustomerId:customerId
-              }
+            const user = await prisma.user.findUnique({
+              where: { polarCustomerId: payload.data.customerId },
             });
 
-            if(user){
-              await updateUserTier(user.id, "PRO", "ACTIVE", payload.data.id);
+            if (user) {
+              await updateUserTier(
+                user.id,
+                "PRO",
+                "ACTIVE",
+                payload.data.id
+              );
             }
           },
+
           onSubscriptionCanceled: async (payload) => {
-            const customerId = payload.data.customerId;
-
-            const user  = await prisma.user.findUnique({
-              where: {
-                polarCustomerId:customerId
-              }
+            const user = await prisma.user.findUnique({
+              where: { polarCustomerId: payload.data.customerId },
             });
 
-            if(user){
-              await updateUserTier(user.id, user.subscriptionTier as any, "CANCELED");  
+            if (user) {
+              await updateUserTier(
+                user.id,
+                user.subscriptionTier as any,
+                "CANCELED"
+              );
             }
           },
-          onSubscriptionRevoked: async (payload) => {
-            const customerId = payload.data.customerId;
 
-            const user  = await prisma.user.findUnique({
-              where: {
-                polarCustomerId:customerId
-              }
+          onSubscriptionRevoked: async (payload) => {
+            const user = await prisma.user.findUnique({
+              where: { polarCustomerId: payload.data.customerId },
             });
 
-            if(user){
+            if (user) {
               await updateUserTier(user.id, "FREE", "EXPIRED");
             }
           },
-          onOrderPaid: async (event) => { },
+
           onCustomerCreated: async (payload) => {
             const user = await prisma.user.findUnique({
-              where: {
-                email: payload.data.email
-              }
+              where: { email: payload.data.email },
             });
 
-            if(user){
-              await updatePolarCustomerId(user.id, payload.data.id)
+            if (user) {
+              await updatePolarCustomerId(user.id, payload.data.id);
             }
           },
         }),
