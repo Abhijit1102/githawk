@@ -44,7 +44,7 @@ export const auth = betterAuth({
   socialProviders: {
     github: {
       clientId: GITHUB_AUTH_CLIENT_ID ?? "Ov23liXFabJYx3XKlh58",
-      clientSecret: GITHUB_AUTH_CLIENT_SECRET!,
+      clientSecret: GITHUB_AUTH_CLIENT_SECRET ?? "8ddb7e9553e7604b2c9a5445e47dba0394723cab",
       scope: ["read:user", "repo", "admin:repo_hook"],
     },
   },
