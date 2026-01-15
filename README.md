@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GitHawk
+
+GitHawk is a hobby project and a GitHub-focused alternative to CodeRabbit.  
+It is a full-stack app built with **Next.js**, **FastAPI**, **Better Auth**, **Pinecone**, and **Polar**, providing GitHub authentication, AI embeddings, and subscription management.
+
+---
+
+## Features
+
+- GitHub authentication with Better Auth
+- AI-powered embeddings using Pinecone
+- Payment and subscription management via Polar
+- Full-stack architecture with PostgreSQL and Next.js
+- Supports AI generation via Google Generative AI (Gemini API)
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone the Repository
 
 ```bash
+git clone https://github.com/Abhijit1102/githawk.git
+cd githawk
+```
+## 2. Install Dependencies
+```bash
+# Frontend
+cd frontend
+npm install
+
+# Backend (if separate)
+cd backend
+npm install
+
+```
+## 3. Setup Environment Variables
+
+- Create a `.env` file in the root directory and add the following variables:
+
+```bash# Postgres Config
+DATABASE_URL=""
+
+# Better Auth
+BETTER_AUTH_SECRET=""
+BETTER_AUTH_URL="http://localhost:3000"
+
+# GitHub OAuth
+GITHUB_AUTH_CLIENT_ID=""
+GITHUB_AUTH_CLIENT_SECRET="70cfab7c7621ff6f"
+
+BETTER_AUTH_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_BASE_URL="http://localhost:3000"
+
+# Pinecone
+PINECONE_VECTOR_DB_URL="https://githawk-embeddings-c7uf8l2.pinecone.io"
+PINECONE_API_KEY="pcsk_7KRMRs_BSvigNDkiN2Y7Xkzn5BQ4oANdSeaJbHr66apRu2"
+
+# Google Generative AI (Gemini)
+GOOGLE_GENERATIVE_AI_API_KEY="AIzaSyDQ7UH4fX"
+
+# Polar (Subscriptions & Payments)
+POLAR_ACCESS_TOKEN="polar_oat_FKVBMKGt0uJGGNpci3o9tqYR18OIGy"
+POLAR_SUCCESS_URL="https://githawk.vercel.app"
+POLAR_WEBHOOK_SECRET="polar_whs_GS8IIfxpWVaYGd8IXbL8O06jdhV"
+
+# Inngest (Event Handling)
+INNGEST_EVENT_KEY="zpWxjLkTbU-LGDbPm4KtBtdM7ro9mPo1ujnJfEO3d1O6FZeWMgutyQ"
+INNGEST_SIGNING_KEY="signkey-prod-bb98eedea378e5e0b1f22dbfb9abe03dcc4cf7d4eda"
+
+```
+# 4. Run the App
+```bash
+# Frontend
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Backend (if separate)
+npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ - Frontend: Next.js, React, Tailwind CSS
+ - Backend: Node.js, FastAPI (optional)
+ - Database: PostgreSQL
+ - Authentication: Better Auth
+ - AI & Embeddings: Pinecone, Google Gemini
+ - Payments: Polar
+ - Event Handling: Inngest
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## License
 
-## Learn More
+- MIT License © 2026 [Abhijit Rajkumar]
+```bash
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+If you want, I can also make a **fancier version with badges, emojis, and a “quick start for GitHawk” section** like many GitHub hobby projects, which looks very appealing at a glance.  
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Do you want me to do that too?
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
