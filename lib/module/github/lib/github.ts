@@ -24,8 +24,8 @@ export interface ContributionResponse {
   } | null;
 }
 
-/* -------------------- GITHUB TOKEN -------------------- */
 
+/* -------------------- GITHUB TOKEN -------------------- */
 export const getGithubToken = async (): Promise<string> => {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -52,8 +52,8 @@ export const getGithubToken = async (): Promise<string> => {
   return account.accessToken;
 };
 
-/* -------------------- FETCH CONTRIBUTIONS -------------------- */
 
+/* -------------------- FETCH CONTRIBUTIONS -------------------- */
 export const fetchUserContribution = async (
   token: string,
   username: string
@@ -84,32 +84,34 @@ export const fetchUserContribution = async (
       username,
     });
 
-    return (
-      response.user?.contributionsCollection?.contributionCalendar ?? null
-    );
+    return response.user?.contributionsCollection?.contributionCalendar ?? null;
   } catch (error) {
     console.error("GitHub GraphQL error:", error);
     return null;
   }
 };
 
+/* -------------------- REPOSITORIES -------------------- */
 
-export const getRepositories = async (page: number = 1, perPage: number=10) => {
-  const token = await getGithubToken();
-  const octokit = new Octokit({ auth: token});
+export const getRepositories = async (
+    page: number = 1,
+    perPage: number = 10
+  ) => {
+    const token = await getGithubToken();
+    const octokit = new Octokit({ auth: token });
 
-  const {data} = await octokit.rest.repos.listForAuthenticatedUser({
-    sort: "updated",
-    direction:"desc",
-    visibility:"all",
-    per_page: perPage,
-    page:page
-  })
+    const { data } = await octokit.rest.repos.listForAuthenticatedUser({
+      sort: "updated",
+      direction: "desc",
+      visibility: "all",
+      per_page: perPage,
+      page,
+    });
 
-  return data;
-}
+    return data;
+  };
 
-
+/* -------------------- WEBHOOKS -------------------- */
 export const createWebhook = async (owner:string, repo:string) => {
   const token = await getGithubToken();
   const octokit = new Octokit({
