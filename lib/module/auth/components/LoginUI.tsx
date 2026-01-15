@@ -10,7 +10,7 @@ const LoginUI = () => {
   const handleGithubLogin = async () => {
     setIsLoading(true);
     try {
-      await signIn.social({ provider: "github", callbackURL: "/dashboard" });
+      await signIn.social({ provider: "github", callbackURL: "/" });
     } catch (err) {
       console.error(err);
       setIsLoading(false);
