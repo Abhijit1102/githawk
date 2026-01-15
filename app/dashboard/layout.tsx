@@ -6,11 +6,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-import { requireAuth } from "@/lib/module/auth/utils/auth-utils";
-
 // ✅ Must be async because we await requireAuth()
-const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
-  const session = await requireAuth();
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <SidebarProvider>
