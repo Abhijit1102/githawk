@@ -30,7 +30,7 @@ export const auth = betterAuth({
 
   // ✅ THIS FIXES INVALID_ORIGIN
   trustedOrigins: [
-    "http://localhost:3000",
+    "https://githawk.vercel.app",
     process.env.NEXT_PUBLIC_APP_BASE_URL!,
   ].filter(Boolean),
 
@@ -41,7 +41,7 @@ export const auth = betterAuth({
 
       returnUrl:
         process.env.NEXT_PUBLIC_APP_BASE_URL ??
-        "http://localhost:3000/dashboard",
+        "https://githawk.vercel.app/dashboard",
 
       use: [
         checkout({

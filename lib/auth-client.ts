@@ -9,6 +9,8 @@ export const {
   customer,
   checkout,
 } = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_BASE_URL!,
+  baseURL:
+    process.env.NEXT_PUBLIC_APP_BASE_URL ??
+    "https://githawk.vercel.app",
   plugins: [polarClient()],
 });
