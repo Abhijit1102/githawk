@@ -54,8 +54,8 @@ export default function ReviewsPage() {
    */
   useEffect(() => {
     if (!isPending && !session?.user) {
-      router.replace("/");
       toast.message("You need to login!")
+      router.replace("/");
     }
   }, [isPending, session, router]);
 
