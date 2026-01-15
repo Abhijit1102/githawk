@@ -15,6 +15,27 @@ import {
   updatePolarCustomerId,
 } from "@/lib/module/payment/lib/subscription";
 
+const {
+  GITHUB_AUTH_CLIENT_ID,
+  GITHUB_AUTH_CLIENT_SECRET,
+  NEXT_PUBLIC_APP_BASE_URL,
+  POLAR_WEBHOOK_SECRET,
+} = process.env;
+
+if (!GITHUB_AUTH_CLIENT_ID) {
+  throw new Error("❌ Missing GITHUB_AUTH_CLIENT_ID");
+}
+if (!GITHUB_AUTH_CLIENT_SECRET) {
+  throw new Error("❌ Missing GITHUB_AUTH_CLIENT_SECRET");
+}
+if (!NEXT_PUBLIC_APP_BASE_URL) {
+  throw new Error("❌ Missing NEXT_PUBLIC_APP_BASE_URL");
+}
+if (!POLAR_WEBHOOK_SECRET) {
+  throw new Error("❌ Missing POLAR_WEBHOOK_SECRET");
+}
+
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -22,8 +43,8 @@ export const auth = betterAuth({
 
   socialProviders: {
     github: {
-      clientId: process.env.GITHUB_AUTH_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_AUTH_CLIENT_SECRET!,
+      clientId: GITHUB_AUTH_CLIENT_ID!,
+      clientSecret: GITHUB_AUTH_CLIENT_SECRET!,
       scope: ["read:user", "repo", "admin:repo_hook"],
     },
   },
@@ -31,7 +52,7 @@ export const auth = betterAuth({
   // ✅ THIS FIXES INVALID_ORIGIN
   trustedOrigins: [
     "https://githawk.vercel.app",
-    process.env.NEXT_PUBLIC_APP_BASE_URL!,
+    NEXT_PUBLIC_APP_BASE_URL!,
   ].filter(Boolean),
 
   plugins: [
@@ -40,7 +61,7 @@ export const auth = betterAuth({
       createCustomerOnSignUp: true,
 
       returnUrl:
-        process.env.NEXT_PUBLIC_APP_BASE_URL ??
+        NEXT_PUBLIC_APP_BASE_URL ??
         "https://githawk.vercel.app/dashboard",
 
       use: [
@@ -60,7 +81,7 @@ export const auth = betterAuth({
         usage(),
 
         webhooks({
-          secret: process.env.POLAR_WEBHOOK_SECRET!,
+          secret: POLAR_WEBHOOK_SECRET!,
 
           onSubscriptionActive: async (payload) => {
             const user = await prisma.user.findUnique({
