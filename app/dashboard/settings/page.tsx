@@ -22,8 +22,8 @@ const SettingsPage = () => {
    */
   useEffect(() => {
     if (!isPending && !session?.user) {
-      router.replace("/");
       toast.message("You need to Login!")
+      router.replace("/");
     }
   }, [isPending, session, router]);
 

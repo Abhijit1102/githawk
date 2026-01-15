@@ -18,14 +18,19 @@ export default function Loader() {
     const currentLine = CODE_LINES[lineIndex];
     const speed = isDeleting ? 40 : 70;
 
+    let pauseTimeout: NodeJS.Timeout | null = null;
+
     const timeout = setTimeout(() => {
       if (!isDeleting) {
         setDisplayText(currentLine.slice(0, displayText.length + 1));
-        if (displayText.length === currentLine.length) {
-          setTimeout(() => setIsDeleting(true), 800);
+
+        // Pause briefly at end of line
+        if (displayText.length + 1 === currentLine.length) {
+          pauseTimeout = setTimeout(() => setIsDeleting(true), 800);
         }
       } else {
         setDisplayText(currentLine.slice(0, displayText.length - 1));
+
         if (displayText.length === 0) {
           setIsDeleting(false);
           setLineIndex((prev) => (prev + 1) % CODE_LINES.length);
@@ -33,26 +38,23 @@ export default function Loader() {
       }
     }, speed);
 
-    return () => clearTimeout(timeout);
+    // Cleanup both timeouts on unmount or dependency change
+    return () => {
+      clearTimeout(timeout);
+      if (pauseTimeout) clearTimeout(pauseTimeout);
+    };
   }, [displayText, isDeleting, lineIndex]);
 
   return (
     <div className="relative flex h-screen w-full items-center justify-center bg-background text-foreground overflow-hidden">
-      {/* Subtle grid / terminal texture */}
+      {/* Subtle terminal/grid background */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,hsl(var(--border))_1px,transparent_0)] bg-[size:24px_24px] opacity-[0.15]" />
 
       <div className="relative z-10 flex flex-col items-center gap-6">
         {/* Central Icon */}
         <motion.div
-          animate={{
-            scale: [1, 1.08, 1],
-            opacity: [0.8, 1, 0.8],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+          animate={{ scale: [1, 1.08, 1], opacity: [0.8, 1, 0.8] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           className="relative"
         >
           {/* Glow */}
