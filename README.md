@@ -1,99 +1,282 @@
-# GitHawk
+# 🦅 GitHawk
 
-GitHawk is a hobby project and a GitHub-focused alternative to CodeRabbit.  
-It is a full-stack app built with **Next.js**, **FastAPI**, **Better Auth**, **Pinecone**, and **Polar**, providing GitHub authentication, AI embeddings, and subscription management.
+> An open-source, AI-powered GitHub Pull Request reviewer — a hobby alternative to CodeRabbit.  
+> Connect a repo, and GitHawk automatically reviews every PR with Gemini AI, posts inline comments, and generates a Mermaid diagram of the change flow.
+
+![Next.js](https://img.shields.io/badge/Next.js-14+-black?style=flat-square&logo=next.js)
+![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?style=flat-square&logo=fastapi)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=flat-square&logo=postgresql)
+![Pinecone](https://img.shields.io/badge/Pinecone-Vector_DB-00A36C?style=flat-square)
+![Gemini](https://img.shields.io/badge/Google_Gemini-AI-4285F4?style=flat-square&logo=google)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
+
+---
+
+## What GitHawk Does
+
+When a pull request is opened on a connected GitHub repository, GitHawk:
+
+1. **Fetches the PR diff** — title, description, and all file changes
+2. **Retrieves codebase context** — semantic search over the indexed repo via Pinecone
+3. **Generates an AI review** via Gemini 2.5 Flash including:
+   - File-by-file walkthrough
+   - Mermaid sequence diagram of the change flow
+   - Strengths, issues, and concrete code suggestions
+   - A short poem summarizing the PR ✨
+4. **Posts the review as a GitHub comment** directly on the PR
+5. **Saves the review** to your dashboard for future reference
 
 ---
 
 ## Features
 
-- GitHub authentication with Better Auth
-- AI-powered embeddings using Pinecone
-- Payment and subscription management via Polar
-- Full-stack architecture with PostgreSQL and Next.js
-- Supports AI generation via Google Generative AI (Gemini API)
+- 🔐 **GitHub OAuth** via Better Auth — no manual token setup
+- 🧠 **RAG-powered reviews** — Gemini sees relevant codebase context, not just the diff
+- 📊 **Auto Mermaid diagrams** — visualizes the flow of every PR change
+- 💳 **Subscription tiers** via Polar — monetize or gate features
+- ⚡ **Event-driven pipeline** via Inngest — resilient, retryable, concurrent (up to 5 reviews at once)
+- 🗄️ **Review history dashboard** — browse all past PR reviews per repository
+
+---
+
+## Architecture
+
+```
+GitHub Webhook (pr.opened)
+        │
+        ▼
+  Next.js API Route
+        │
+        ├──► fires: pr.review.requested  ──────────────────────────────┐
+        │                                                               │
+        └──► fires: repository.connected (on first connect)            │
+                        │                                              │
+                        ▼                                              ▼
+              ┌─────────────────────┐                ┌────────────────────────────┐
+              │  Inngest: index-repo│                │ Inngest: generate-review   │
+              │                     │                │                            │
+              │ 1. fetch-files      │                │ 1. fetch-pr-diff           │
+              │    (GitHub API)     │                │    (GitHub API)            │
+              │                     │                │                            │
+              │ 2. index-codebase   │                │ 2. retrieve-context        │
+              │    (Pinecone embed) │                │    (Pinecone vector search) │
+              └─────────────────────┘                │                            │
+                        │                            │ 3. generate-ai-review      │
+                        ▼                            │    (Gemini 2.5 Flash)      │
+                  Pinecone Index                     │                            │
+              owner/repo namespace                   │ 4. post-comment            │
+                                                     │    (GitHub API)            │
+                                                     │                            │
+                                                     │ 5. save-review             │
+                                                     │    (PostgreSQL / Prisma)   │
+                                                     └────────────────────────────┘
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 14+, React, Tailwind CSS |
+| Backend | Next.js API Routes, FastAPI (optional Python services) |
+| Database | PostgreSQL via Prisma |
+| Authentication | Better Auth (GitHub OAuth provider) |
+| AI Model | Google Gemini 2.5 Flash (`@ai-sdk/google`) |
+| Vector Search | Pinecone (codebase embeddings for RAG context) |
+| Event Pipeline | Inngest (background jobs, retries, concurrency) |
+| Payments | Polar (subscriptions & webhook billing) |
 
 ---
 
 ## Getting Started
 
-### 1. Clone the Repository
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database
+- [GitHub OAuth App](https://github.com/settings/developers)
+- [Pinecone](https://pinecone.io) account
+- [Google AI Studio](https://aistudio.google.com) API key (Gemini)
+- [Polar](https://polar.sh) account
+- [Inngest](https://inngest.com) account (or local dev server)
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/Abhijit1102/githawk.git
 cd githawk
 ```
-## 2. Install Dependencies
+
+### 2. Install dependencies
+
 ```bash
-# Frontend
-cd frontend
+# Frontend / full-stack Next.js
 npm install
 
-# Backend (if separate)
+# Python backend (if using FastAPI services)
 cd backend
-npm install
-
+pip install -r requirements.txt
 ```
-## 3. Setup Environment Variables
 
-- Create a `.env` file in the root directory and add the following variables:
+### 3. Set up environment variables
 
-```bash# Postgres Config
+Create a `.env.local` file in the project root:
+
+```env
+# ── PostgreSQL ──────────────────────────────────────────
 DATABASE_URL=""
 
-# Better Auth
+# ── Better Auth ─────────────────────────────────────────
 BETTER_AUTH_SECRET=""
-BETTER_AUTH_URL="http://localhost:3000"
-
-# GitHub OAuth
-GITHUB_AUTH_CLIENT_ID=""
-GITHUB_AUTH_CLIENT_SECRET="70cfab7c7621ff6f"
-
 BETTER_AUTH_URL="http://localhost:3000"
 NEXT_PUBLIC_APP_BASE_URL="http://localhost:3000"
 
-# Pinecone
-PINECONE_VECTOR_DB_URL="https://githawk-embeddings-c7uf8l2.pinecone.io"
-PINECONE_API_KEY="pcsk_7KRMRs_BSvigNDkiN2Y7Xkzn5BQ4oANdSeaJbHr66apRu2"
+# ── GitHub OAuth ─────────────────────────────────────────
+# Create an OAuth App at https://github.com/settings/developers
+# Callback URL: http://localhost:3000/api/auth/callback/github
+GITHUB_AUTH_CLIENT_ID=""
+GITHUB_AUTH_CLIENT_SECRET=""
 
-# Google Generative AI (Gemini)
-GOOGLE_GENERATIVE_AI_API_KEY="AIzaSyDQ7UH4fX"
+# ── Pinecone ─────────────────────────────────────────────
+PINECONE_VECTOR_DB_URL=""
+PINECONE_API_KEY=""
 
-# Polar (Subscriptions & Payments)
-POLAR_ACCESS_TOKEN="polar_oat_FKVBMKGt0uJGGNpci3o9tqYR18OIGy"
-POLAR_SUCCESS_URL="https://githawk.vercel.app"
-POLAR_WEBHOOK_SECRET="polar_whs_GS8IIfxpWVaYGd8IXbL8O06jdhV"
+# ── Google Generative AI (Gemini) ─────────────────────────
+GOOGLE_GENERATIVE_AI_API_KEY=""
 
-# Inngest (Event Handling)
-INNGEST_EVENT_KEY="zpWxjLkTbU-LGDbPm4KtBtdM7ro9mPo1ujnJfEO3d1O6FZeWMgutyQ"
-INNGEST_SIGNING_KEY="signkey-prod-bb98eedea378e5e0b1f22dbfb9abe03dcc4cf7d4eda"
+# ── Polar (Payments) ─────────────────────────────────────
+POLAR_ACCESS_TOKEN=""
+POLAR_SUCCESS_URL="http://localhost:3000"
+POLAR_WEBHOOK_SECRET=""
 
+# ── Inngest ───────────────────────────────────────────────
+INNGEST_EVENT_KEY=""
+INNGEST_SIGNING_KEY=""
 ```
-# 4. Run the App
+
+> 🔑 **Never commit `.env.local`** — all keys above are secret. The `.gitignore` should exclude it by default.
+
+### 4. Run database migrations
+
 ```bash
-# Frontend
-npm run dev
+npx prisma migrate dev
+npx prisma generate
+```
 
-# Backend (if separate)
+### 5. Start the Inngest dev server
+
+```bash
+# In a separate terminal
+npx inngest-cli@latest dev
+```
+
+### 6. Run the development server
+
+```bash
 npm run dev
 ```
 
-## Tech Stack
+Open [http://localhost:3000](http://localhost:3000).
 
- - Frontend: Next.js, React, Tailwind CSS
- - Backend: Node.js, FastAPI (optional)
- - Database: PostgreSQL
- - Authentication: Better Auth
- - AI & Embeddings: Pinecone, Google Gemini
- - Payments: Polar
- - Event Handling: Inngest
+---
+
+## Inngest Functions
+
+### `index-repo`  
+**Trigger:** `repository.connected`
+
+Runs when a user connects a new GitHub repository. Fetches all repository files via the GitHub API using the user's stored OAuth access token, then indexes them into Pinecone under the `owner/repo` namespace for later retrieval during reviews.
+
+```
+repository.connected
+    └── fetch-files     (GitHub API → raw file contents)
+    └── index-codebase  (embed + upsert → Pinecone)
+```
+
+### `generate-review`  
+**Trigger:** `pr.review.requested` | **Concurrency:** 5
+
+The main review pipeline. Fetches the PR diff, retrieves semantically relevant codebase context from Pinecone, sends everything to Gemini 2.5 Flash, posts the result as a GitHub PR comment, and saves the review to the database.
+
+```
+pr.review.requested
+    └── fetch-pr-diff       (diff + title + description from GitHub API)
+    └── retrieve-context    (vector search Pinecone by PR title+description)
+    └── generate-ai-review  (Gemini 2.5 Flash — markdown review + Mermaid diagram)
+    └── post-comment        (GitHub API → posts review on the PR)
+    └── save-review         (Prisma → Review record in PostgreSQL)
+```
+
+---
+
+## AI Review Format
+
+Every generated review follows this structure:
+
+| Section | Description |
+|---|---|
+| **Walkthrough** | File-by-file explanation of what changed and why |
+| **Sequence Diagram** | Mermaid JS diagram of the change flow |
+| **Summary** | One-paragraph overview of the PR |
+| **Strengths** | What was done well |
+| **Issues** | Bugs, security concerns, code smells |
+| **Suggestions** | Specific, actionable code improvement examples |
+| **Poem** | A short creative poem summarizing the PR 🎭 |
+
+---
+
+## Project Structure
+
+```
+githawk/
+├── app/
+│   ├── page.tsx                       # Landing / dashboard
+│   ├── api/
+│   │   ├── auth/                      # Better Auth routes
+│   │   ├── webhook/github/            # GitHub webhook receiver
+│   │   └── polar/webhook/             # Polar billing webhook
+├── inngest/
+│   ├── client.ts                      # Inngest client
+│   └── functions/
+│       ├── index-repo.ts              # Codebase indexing function
+│       └── generate-review.ts         # PR review generation function
+├── lib/
+│   ├── db.ts                          # Prisma client singleton
+│   └── module/
+│       ├── github/lib/github.ts       # GitHub API helpers
+│       └── ai/lib/rag.ts              # Pinecone embed + retrieval
+├── prisma/
+│   └── schema.prisma                  # Database schema
+└── .env.local                         # Environment variables (not committed)
+```
+
+---
+
+## GitHub OAuth App Setup
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click **New OAuth App**
+3. Set **Homepage URL** to `http://localhost:3000`
+4. Set **Authorization callback URL** to `http://localhost:3000/api/auth/callback/github`
+5. Copy the **Client ID** and generate a **Client Secret**
+6. Add both to `.env.local`
+
+For production, replace `localhost:3000` with your deployed domain.
+
+---
+
+## Deployment
+
+| Service | Platform |
+|---|---|
+| Frontend + API Routes | [Vercel](https://vercel.com) |
+| Database | [Supabase](https://supabase.com) or [Neon](https://neon.tech) |
+| Inngest Workers | Inngest Cloud (auto-detected from Vercel) |
+| Pinecone Index | Pinecone Cloud (Starter tier is free) |
+
+---
 
 ## License
 
-- MIT License © 2026 [Abhijit Rajkumar]
----
-
-If you want, I can also make a **fancier version with badges, emojis, and a “quick start for GitHawk” section** like many GitHub hobby projects, which looks very appealing at a glance.  
-
-Do you want me to do that too?
-
+MIT License © 2026 [Abhijit Rajkumar](https://github.com/Abhijit1102)
