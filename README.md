@@ -104,7 +104,7 @@ GitHub Webhook (pr.opened)
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Abhijit1102/githawk.git
+https://github.com/Abhijit1102/githawk.git
 cd githawk
 ```
 
